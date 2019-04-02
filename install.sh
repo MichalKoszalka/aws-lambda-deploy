@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Set this to a bucket owned by you
+export BUCKET_NAME=canary-deployments
 export STACK_NAME=aws-lambda-deploy-stack
 
 rm -rf build
@@ -10,7 +11,9 @@ zip -jr build/calculate_weights.zip functions/calculate_weights/*
 zip -jr build/rollback.zip functions/rollback/*
 zip -jr build/update_weight.zip functions/update_weight/*
 zip -jr build/finalize.zip functions/finalize/*
-zip -jr build/simple.zip functions/simple/*
+zip -jr build/redirect_v1.zip functions/redirect/v1/*
+zip -jr build/redirect_v2.zip functions/redirect/v2/*
+zip -jr build/redirect_v3.zip functions/redirect/v3/*
 
 aws cloudformation package \
     --template-file template.yml \

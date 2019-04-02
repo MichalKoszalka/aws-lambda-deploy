@@ -5,15 +5,84 @@ Parameters:
       Type: String
 
 Resources:
-  SimpleDeployFunction:
+
+  RedirectRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: RedirectRestApi
+      FailOnWarnings: true
+  
+  RedirectResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId:
+        Fn::GetAtt:
+          - RedirectRestApi
+          - RootResourceId
+      PathPart: Redirect
+      RestApiId:
+        Ref: RedirectRestApi
+
+  RedirectMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: ANY
+      AuthorizationType: NONE
+      ResourceId:
+        Ref: RedirectResource
+      RestApiId:
+        Ref: RedirectRestApi
+      Integration:
+        Type: AWS_PROXY
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${Arn}:LIVE/invocations
+          - Arn: 
+              Fn::GetAtt: 
+                - RedirectLambdaFunction
+                - Arn
+        IntegrationHttpMethod: POST
+
+  ApiGatewayDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn:
+      - RedirectMethod
+    Properties:
+      RestApiId: !Ref RedirectRestApi
+      StageName: development
+
+  RedirectLambdaFunctionAlias:
+    Type: AWS::Lambda::Alias
+    Properties:     
+      FunctionName:
+        Ref: RedirectLambdaFunction
+      FunctionVersion:
+        Fn::GetAtt:
+          - RedirectLambdaFunctionVersion
+          - Version
+      Name: LIVE
+
+  RedirectLambdaFunctionVersion:
+    Type: AWS::Lambda::Version
+    Properties:     
+      FunctionName : 
+        Ref: RedirectLambdaFunction
+  
+  RedirectLambdaFunction:
     Type: AWS::Serverless::Function
     Properties:
-      FunctionName: SimpleDeployFunction
+      FunctionName: Redirect
       Timeout: 300
-      Handler: simple.handler
+      Handler: redirect.lambda_handler
       Runtime: python3.6
-      CodeUri: build/simple.zip
+      CodeUri: build/redirect_v1.zip
       Policies: AWSLambdaFullAccess
+
+  PermissionForApiGatewayToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref RedirectLambdaFunctionAlias
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
 
   CalculateWeights:
     Type: AWS::Serverless::Function

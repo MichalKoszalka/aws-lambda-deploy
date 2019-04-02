@@ -56,6 +56,7 @@ def health_check_metrics_errors(func_name, alias_name, new_version):
         Statistics=['Sum']
     )
     datapoints = response['Datapoints']
+    print("Healthcheck sum: {0}, for function: {1}, resource: {2} and version: {3}".format(datapoints, func_name, func_plus_alias, new_version))    
     for datapoint in datapoints:
         if datapoint['Sum'] > 0:
             print("Failing health check because error metrics were found for new version: {0}".format(datapoints))
